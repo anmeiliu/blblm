@@ -11,6 +11,10 @@
 utils::globalVariables(c("."))
 
 
+# TODO: add file import
+# TODO: allow parallelization
+# TODO: allow GLM?
+
 #' @export
 blblm <- function(formula, data, m = 10, B = 5000) {
   data_list <- split_data(data, m)
@@ -68,6 +72,7 @@ blbsigma <- function(fit) {
   sqrt(sum(w * (e^2)) / (sum(w) - p))
 }
 
+# TODO: richer print information
 
 #' @export
 #' @method print blblm
@@ -76,6 +81,8 @@ print.blblm <- function(x, ...) {
   cat("\n")
 }
 
+# TODO: maybe sigma, coefs should be stored in the blblm object?
+# TODO: pretty sure this does not respect alpha level parameter
 
 #' @export
 #' @method sigma blblm
