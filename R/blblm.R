@@ -47,6 +47,10 @@ blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.c
   }
 }
 
+read_data <- function(filepath, read_function, ...) {
+  data <- read_function(filepath, ...)
+  data
+}
 
 #' split data into m parts of approximated equal sizes
 split_data <- function(data, m) {
