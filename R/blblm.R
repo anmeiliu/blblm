@@ -16,14 +16,35 @@ utils::globalVariables(c("."))
 # TODO: allow GLM?
 
 #' @export
-blblm <- function(formula, data, m = 10, B = 5000) {
-  data_list <- split_data(data, m)
-  estimates <- map(
-    data_list,
-    ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
-  res <- list(estimates = estimates, formula = formula)
-  class(res) <- "blblm"
-  invisible(res)
+blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, cluster = NULL, ...) {
+  if (is.null(data) & is.null(filepaths)) {
+    stop("Neither data nor filepaths to data provided")
+  }
+  if (! is.null(data) | ! is.null(filepaths)) {
+    warning("Both data and filepaths specified, using data")
+  }
+
+  if (! is.null(cluster)) {
+    if (! is.null(data)) {
+      data_list <- split_data(data, m)
+      # parapply
+    } else {
+      # read and parapply
+    }
+  } else {
+    if (is.null(data)) {
+      data <- filepaths %>% map(read_function, ...)
+    }
+
+    data_list <- split_data(data, m)
+
+    estimates <- map(
+      data_list,
+      ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+    res <- list(estimates = estimates, formula = formula)
+    class(res) <- "blblm"
+    invisible(res)
+  }
 }
 
 
@@ -32,7 +53,6 @@ split_data <- function(data, m) {
   idx <- sample.int(m, nrow(data), replace = TRUE)
   data %>% split(idx)
 }
-
 
 #' compute the estimates
 lm_each_subsample <- function(formula, data, n, B) {
