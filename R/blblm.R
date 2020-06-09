@@ -11,41 +11,32 @@
 # from https://github.com/jennybc/googlesheets/blob/master/R/googlesheets.R
 utils::globalVariables(c("."))
 
-
-# TODO: add file import
-# TODO: allow parallelization
 # TODO: allow GLM?
 
 #' @export
-blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, cluster = NULL, ...) {
+blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, ...) {
   if (is.null(data) & is.null(filepaths)) {
     stop("Neither data nor filepaths to data provided")
   }
-  if (! is.null(data) | ! is.null(filepaths)) {
+  if (!is.null(data) & !is.null(filepaths)) {
     warning("Both data and filepaths specified, using data")
   }
 
-  if (! is.null(cluster)) {
-    if (! is.null(data)) {
-      data_list <- split_data(data, m)
-      # parapply
-    } else {
-      # read and parapply
-    }
-  } else {
-    if (is.null(data)) {
-      data <- filepaths %>% map(read_function, ...)
-    }
-
+  if (!is.null(data)) {
     data_list <- split_data(data, m)
-
-    estimates <- map(
-      data_list,
-      ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
-    res <- list(estimates = estimates, formula = formula)
-    class(res) <- "blblm"
-    invisible(res)
+    estimates <- furrr::future_map(data_list, ~ lm_each_subsample(formula, ., n = nrow(.), B = B))
+  } else {
+    filepath_list <- split_data(filepaths, m)
+    # the function here must be inlined or furrr errors in multiprocess mode
+    # I have no idea why, and I know it's ugly. sorry
+    estimates <- furrr::future_map(filepath_list, function(filepath_split) {
+      split_data <- filepath_split %>% map(read_data, ...) %>% reduce(rbind)
+      lm_each_subsample(formula, split_data, n = nrow(split_data), B = B)
+    })
   }
+  res <- list(estimates = estimates, formula = formula)
+  class(res) <- "blblm"
+  invisible(res)
 }
 
 read_data <- function(filepath, read_function, ...) {
@@ -55,7 +46,7 @@ read_data <- function(filepath, read_function, ...) {
 
 #' split data into m parts of approximated equal sizes
 split_data <- function(data, m) {
-  idx <- sample.int(m, nrow(data), replace = TRUE)
+  idx <- sample.int(m, NROW(data), replace = TRUE)  # NROW over nrow so it doesn't break on vectors
   data %>% split(idx)
 }
 
