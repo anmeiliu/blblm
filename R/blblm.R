@@ -41,7 +41,7 @@ blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.c
 
 #' split data into m parts of approximated equal sizes
 split_sample <- function(data, m) {
-  idx <- sample.int(m, NROW(data), replace = TRUE)  # NROW over nrow so it doesn't break on vectors
+  idx <- sample.int(m, NROW(data), replace = TRUE) # NROW over nrow so it doesn't break on vectors
   data %>% split(idx)
 }
 
@@ -85,11 +85,13 @@ blbsigma <- function(fit) {
 
 simplify_estimates <- function(fit) {
   fit$estimates %>% map(function(x) {
-    df <- cbind(map_dfr(x, ~data.frame(as.list(.$coef))),
-                map_dfr(x, ~data.frame(sigma = .$sigma)))
+    df <- cbind(
+      map_dfr(x, ~ data.frame(as.list(.$coef))),
+      map_dfr(x, ~ data.frame(sigma = .$sigma))
+    )
     names(df) <- c("(Intercept)", names(df)[-1])
     df
-    })
+  })
 }
 
 # TODO: richer print information
@@ -97,7 +99,7 @@ simplify_estimates <- function(fit) {
 #' @export
 #' @method print blblm
 print.blblm <- function(x, ...) {
-  cat("blblm model:", Reduce(paste, deparse(x$formula)))  # R does not like capture.output
+  cat("blblm model:", Reduce(paste, deparse(x$formula))) # R does not like capture.output
   cat("\n")
 }
 
