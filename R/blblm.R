@@ -83,6 +83,15 @@ blbsigma <- function(fit) {
   sqrt(sum(w * (e^2)) / (sum(w) - p))
 }
 
+simplify_estimates <- function(fit) {
+  fit$estimates %>% map(function(x) {
+    df <- cbind(map_dfr(x, ~data.frame(as.list(.$coef))),
+                map_dfr(x, ~data.frame(sigma = .$sigma)))
+    names(df) <- c("(Intercept)", names(df)[-1])
+    df
+    })
+}
+
 # TODO: richer print information
 
 #' @export
