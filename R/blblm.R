@@ -102,7 +102,6 @@ print.blblm <- function(x, ...) {
 }
 
 # TODO: maybe sigma, coefs should be stored in the blblm object?
-# TODO: pretty sure this does not respect alpha level parameter
 
 #' @export
 #' @method sigma blblm
@@ -110,7 +109,7 @@ sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
   est <- object$estimates
   sigma <- mean(map_dbl(est, ~ mean(map_dbl(., "sigma"))))
   if (confidence) {
-    alpha <- 1 - 0.95
+    alpha <- 1 - level
     limits <- est %>%
       map_mean(~ quantile(map_dbl(., "sigma"), c(alpha / 2, 1 - alpha / 2))) %>%
       set_names(NULL)
