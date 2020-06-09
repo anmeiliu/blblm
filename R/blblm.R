@@ -30,18 +30,13 @@ blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.c
     # the function here must be inlined or furrr errors in multiprocess mode
     # I have no idea why, and I know it's ugly. sorry
     estimates <- furrr::future_map(filepath_list, function(filepath_split) {
-      split_data <- filepath_split %>% map(read_data, ...) %>% reduce(rbind)
-      lm_each_subsample(formula, split_data, n = nrow(split_data), B = B)
+      data <- filepath_split %>% read_function(...)
+      lm_each_subsample(formula, data, n = nrow(data), B = B)
     })
   }
   res <- list(estimates = estimates, formula = formula)
   class(res) <- "blblm"
   invisible(res)
-}
-
-read_data <- function(filepath, read_function, ...) {
-  data <- read_function(filepath, ...)
-  data
 }
 
 #' split data into m parts of approximated equal sizes
