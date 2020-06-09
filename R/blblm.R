@@ -14,22 +14,31 @@ utils::globalVariables(c("."))
 # TODO: allow GLM?
 
 #' @export
-blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, ...) {
+blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, use_plan = TRUE, ...) {
   if (is.null(data) & is.null(filepaths)) {
     stop("Neither data nor filepaths to data provided")
   }
   if (!is.null(data) & !is.null(filepaths)) {
     warning("Both data and filepaths specified, using data")
   }
+  if (!is.null(filepaths) & length(filepaths) != m) {
+    warning("Number of filepaths provided is not the same as number of splits, using file-based splits")
+  }
+  if (use_plan & grepl("sequential", deparse(attributes(future::plan())$call))) {
+    warning("Using a sequential plan (this is usually slower than not using a plan)")
+  }
+
+  if (use_plan) {
+    active_map <- furrr::future_map
+  } else {
+    active_map <- map
+  }
 
   if (!is.null(data)) {
     data_list <- split_sample(data, m)
-    estimates <- furrr::future_map(data_list, ~ lm_each_subsample(formula, ., n = nrow(.), B = B))
+    estimates <- active_map(data_list, ~ lm_each_subsample(formula, ., n = nrow(.), B = B))
   } else {
-    filepath_list <- split_sample(filepaths, m)
-    # the function here must be inlined or furrr errors in multiprocess mode
-    # I have no idea why, and I know it's ugly. sorry
-    estimates <- furrr::future_map(filepath_list, function(filepath_split) {
+    estimates <- active_map(filepaths, function(filepath_split) {
       data <- filepath_split %>% read_function(...)
       lm_each_subsample(formula, data, n = nrow(data), B = B)
     })
