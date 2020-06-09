@@ -14,6 +14,7 @@ Suggests:
 Imports: 
     purrr,
     magrittr,
-    furrr
+    furrr,
+    future
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.0

@@ -1,6 +1,7 @@
 #' @import purrr
 #' @import stats
 #' @import utils
+#' @import future
 #' @importFrom magrittr %>%
 #' @details
 #' Linear Regression with Little Bag of Bootstraps
@@ -24,7 +25,7 @@ blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.c
   if (!is.null(filepaths) & length(filepaths) != m) {
     warning("Number of filepaths provided is not the same as number of splits, using file-based splits")
   }
-  if (use_plan & grepl("sequential", deparse(attributes(future::plan())$call))) {
+  if (use_plan & grepl("sequential", deparse(attributes(plan())$call))) {
     warning("Using a sequential plan (this is usually slower than not using a plan)")
   }
 
