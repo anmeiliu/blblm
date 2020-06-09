@@ -23,10 +23,10 @@ blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.c
   }
 
   if (!is.null(data)) {
-    data_list <- split_data(data, m)
+    data_list <- split_sample(data, m)
     estimates <- furrr::future_map(data_list, ~ lm_each_subsample(formula, ., n = nrow(.), B = B))
   } else {
-    filepath_list <- split_data(filepaths, m)
+    filepath_list <- split_sample(filepaths, m)
     # the function here must be inlined or furrr errors in multiprocess mode
     # I have no idea why, and I know it's ugly. sorry
     estimates <- furrr::future_map(filepath_list, function(filepath_split) {
@@ -45,7 +45,7 @@ read_data <- function(filepath, read_function, ...) {
 }
 
 #' split data into m parts of approximated equal sizes
-split_data <- function(data, m) {
+split_sample <- function(data, m) {
   idx <- sample.int(m, NROW(data), replace = TRUE)  # NROW over nrow so it doesn't break on vectors
   data %>% split(idx)
 }
