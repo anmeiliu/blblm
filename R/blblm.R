@@ -1,5 +1,6 @@
 #' @import purrr
 #' @import stats
+#' @import utils
 #' @importFrom magrittr %>%
 #' @details
 #' Linear Regression with Little Bag of Bootstraps
@@ -101,7 +102,7 @@ blbsigma <- function(fit) {
 #' @export
 #' @method print blblm
 print.blblm <- function(x, ...) {
-  cat("blblm model:", capture.output(x$formula))
+  cat("blblm model:", Reduce(paste, deparse(x$formula)))  # R does not like capture.output
   cat("\n")
 }
 
