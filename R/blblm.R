@@ -108,11 +108,10 @@ print.blblm <- function(x, ...) {
 #' @export
 #' @method sigma blblm
 sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
-  est <- object$estimates
-  sigma <- mean(map_dbl(est, ~ mean(map_dbl(., "sigma"))))
+  sigma <- mean(map_dbl(object$estimates, ~ mean(map_dbl(., "sigma"))))
   if (confidence) {
     alpha <- 1 - level
-    limits <- est %>%
+    limits <- object$estimates %>%
       map_mean(~ quantile(map_dbl(., "sigma"), c(alpha / 2, 1 - alpha / 2))) %>%
       set_names(NULL)
     return(c(sigma = sigma, lwr = limits[1], upr = limits[2]))
@@ -124,8 +123,7 @@ sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
 #' @export
 #' @method coef blblm
 coef.blblm <- function(object, ...) {
-  est <- object$estimates
-  map_mean(est, ~ map_cbind(., "coef") %>% rowMeans())
+  map_mean(object$estimates, ~ map_cbind(., "coef") %>% rowMeans())
 }
 
 
@@ -136,9 +134,8 @@ confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
     parm <- attr(terms(object$formula), "term.labels")
   }
   alpha <- 1 - level
-  est <- object$estimates
   out <- map_rbind(parm, function(p) {
-    map_mean(est, ~ map_dbl(., list("coef", p)) %>% quantile(c(alpha / 2, 1 - alpha / 2)))
+    map_mean(object$estimates, ~ map_dbl(., list("coef", p)) %>% quantile(c(alpha / 2, 1 - alpha / 2)))
   })
   if (is.vector(out)) {
     out <- as.matrix(t(out))
