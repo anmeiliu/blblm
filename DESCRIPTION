@@ -1,18 +1,20 @@
 Package: blblm
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Bag of Little Bootstraps for Generalized Linear Models
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Anmei Liu
+Maintainer: Anmei Liu <anmliu@ucdavis.edu>
+Description: Implements the bag of little bootstraps algorithm for the general linear model.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Suggests: 
-    testthat (>= 2.1.0)
+    testthat (>= 2.1.0),
+    readr
 Imports: 
     purrr,
-    magrittr
+    magrittr,
+    furrr,
+    future
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.0.2
+RoxygenNote: 7.1.0

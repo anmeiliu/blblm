@@ -1,8 +1,10 @@
 #' @import purrr
 #' @import stats
+#' @import utils
+#' @import future
 #' @importFrom magrittr %>%
 #' @details
-#' Linear Regression with Little Bag of Bootstraps
+#' Generalized Linear Models with Bag of Little Bootstraps
 "_PACKAGE"
 
 
@@ -12,44 +14,97 @@ utils::globalVariables(c("."))
 
 
 #' @export
-blblm <- function(formula, data, m = 10, B = 5000) {
-  data_list <- split_data(data, m)
-  estimates <- map(
-    data_list,
-    ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
-  res <- list(estimates = estimates, formula = formula)
-  class(res) <- "blblm"
+blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, min_subsample_size = NULL, even_split = NULL, use_plan = TRUE, ...) {
+  if (is.null(data) & is.null(filepaths)) {
+    stop("Neither data nor filepaths to data provided")
+  }
+  if (!is.null(data) & !is.null(filepaths)) {
+    warning("Both data and filepaths specified, using data")
+  }
+  if (!is.null(filepaths) & length(filepaths) != m) {
+    warning("Number of filepaths provided is not the same as number of splits, using file-based splits")
+  }
+  if (!is.null(filepaths) & !is.null(min_subsample_size)) {
+    warning("Cannot specify min_subsample_size when using file-based splits")
+  }
+  if (!is.null(filepaths) & !is.null(even_split)) {
+    warning("Cannot specify even_split when using file-based splits")
+  }
+  if (use_plan & grepl("sequential", deparse(attributes(plan())$call))) {
+    warning("Using a sequential plan; this is usually slower than not using a plan (set use_plan = FALSE to use no plan)")
+  }
+
+  if (is.null(filepaths)) {
+    if (is.null(min_subsample_size)) {
+      if (is.null(even_split)) {
+        even_split = TRUE
+      } else if (!even_split) {
+        message("Using default minimum subsample size = 3")
+        min_subsample_size = 3
+      }
+    } else {
+      if (!is.null(even_split)) {
+        if (even_split) {
+          warning("Cannot specify min_subsample_size when using even splits; ignoring min_subsample_size")
+        }
+      } else {
+        even_split = FALSE
+      }
+    }
+  }
+
+  if (use_plan) {
+    active_map <- furrr::future_map
+  } else {
+    active_map <- map
+  }
+
+  if (!is.null(data)) {
+    data_list <- split_sample(data, m, min_subsample_size, even_split)
+    estimates <- active_map(data_list, ~ glm_each_subsample(formula, family, ., nrow(.), B))
+  } else {
+    estimates <- active_map(filepaths, function(filepath_split) {
+      data <- filepath_split %>% read_function(...)
+      glm_each_subsample(formula, family, data, nrow(data), B)
+    })
+  }
+  res <- list(estimates = estimates, formula = formula, family = family)
+  class(res) <- "blbglm"
   invisible(res)
 }
 
-
 #' split data into m parts of approximated equal sizes
-split_data <- function(data, m) {
-  idx <- sample.int(m, nrow(data), replace = TRUE)
+split_sample <- function(data, m, min_subsample_size, even_split) {
+  if (even_split) {
+    idx <- sample(rep_len(1:m, NROW(data)))
+  } else {
+    idx <- sample.int(m, NROW(data), replace = TRUE) # NROW over nrow so it doesn't break on vectors
+    while ((sum(table(idx) < min_subsample_size)) > 0) {
+      idx <- sample.int(m, NROW(data), replace = TRUE)
+    }}
   data %>% split(idx)
 }
 
-
 #' compute the estimates
-lm_each_subsample <- function(formula, data, n, B) {
-  replicate(B, lm_each_boot(formula, data, n), simplify = FALSE)
+glm_each_subsample <- function(formula, family, data, n, B) {
+  replicate(B, glm_each_boot(formula, family, data, n), simplify = FALSE)
 }
 
 
 #' compute the regression estimates for a blb dataset
-lm_each_boot <- function(formula, data, n) {
+glm_each_boot <- function(formula, family, data, n) {
   freqs <- rmultinom(1, n, rep(1, nrow(data)))
-  lm1(formula, data, freqs)
+  glm1(formula, family, data, freqs)
 }
 
 
 #' estimate the regression estimates based on given the number of repetitions
-lm1 <- function(formula, data, freqs) {
+glm1 <- function(formula, family, data, freqs) {
   # drop the original closure of formula,
   # otherwise the formula will pick a wront variable from the global scope.
   environment(formula) <- environment()
-  fit <- lm(formula, data, weights = freqs)
-  list(coef = blbcoef(fit), sigma = blbsigma(fit))
+  fit <- glm(formula, family = family, data, weights = freqs)
+  list(coef = blbcoef(fit), sigma = blbsigma(fit, freqs))
 }
 
 
@@ -60,31 +115,32 @@ blbcoef <- function(fit) {
 
 
 #' compute sigma from fit
-blbsigma <- function(fit) {
+blbsigma <- function(fit, freqs) {
   p <- fit$rank
-  y <- model.extract(fit$model, "response")
-  e <- fitted(fit) - y
-  w <- fit$weights
+  e <- fit$residuals
+  w <- freqs
   sqrt(sum(w * (e^2)) / (sum(w) - p))
 }
 
 
 #' @export
-#' @method print blblm
-print.blblm <- function(x, ...) {
-  cat("blblm model:", capture.output(x$formula))
-  cat("\n")
+#' @method print blbglm
+print.blbglm <- function(x, ...) {
+  cat("blbglm model: ")
+  print(x$formula)
+  cat("\ncoefficients:\n")
+  print(coef(x))
+  cat("\nsigma: ")
+  cat(sigma(x), "\n")
 }
 
-
 #' @export
-#' @method sigma blblm
-sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
-  est <- object$estimates
-  sigma <- mean(map_dbl(est, ~ mean(map_dbl(., "sigma"))))
+#' @method sigma blbglm
+sigma.blbglm <- function(object, confidence = FALSE, level = 0.95, ...) {
+  sigma <- mean(map_dbl(object$estimates, ~ mean(map_dbl(., "sigma"))))
   if (confidence) {
-    alpha <- 1 - 0.95
-    limits <- est %>%
+    alpha <- 1 - level
+    limits <- object$estimates %>%
       map_mean(~ quantile(map_dbl(., "sigma"), c(alpha / 2, 1 - alpha / 2))) %>%
       set_names(NULL)
     return(c(sigma = sigma, lwr = limits[1], upr = limits[2]))
@@ -94,23 +150,21 @@ sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
 }
 
 #' @export
-#' @method coef blblm
-coef.blblm <- function(object, ...) {
-  est <- object$estimates
-  map_mean(est, ~ map_cbind(., "coef") %>% rowMeans())
+#' @method coef blbglm
+coef.blbglm <- function(object, ...) {
+  map_mean(object$estimates, ~ map_cbind(., "coef") %>% rowMeans())
 }
 
 
 #' @export
-#' @method confint blblm
-confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
+#' @method confint blbglm
+confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
   if (is.null(parm)) {
-    parm <- attr(terms(fit$formula), "term.labels")
+    parm <- attr(terms(object$formula), "term.labels")
   }
   alpha <- 1 - level
-  est <- object$estimates
   out <- map_rbind(parm, function(p) {
-    map_mean(est, ~ map_dbl(., list("coef", p)) %>% quantile(c(alpha / 2, 1 - alpha / 2)))
+    map_mean(object$estimates, ~ map_dbl(., list("coef", p)) %>% quantile(c(alpha / 2, 1 - alpha / 2), na.rm = TRUE))
   })
   if (is.vector(out)) {
     out <- as.matrix(t(out))
@@ -120,16 +174,31 @@ confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
 }
 
 #' @export
-#' @method predict blblm
-predict.blblm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
-  est <- object$estimates
+#' @method predict blbglm
+predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
   X <- model.matrix(reformulate(attr(terms(object$formula), "term.labels")), new_data)
-  if (confidence) {
-    map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
-      apply(1, mean_lwr_upr, level = level) %>%
-      t())
+  logit <- ifelse(class(object$fit) == "function", formals(object$fit)$link == "logit",
+                  ifelse(class(object$fit) == "family", object$fit$link == "logit", FALSE))
+  if (logit) {
+    pred_fun <- function(x) {
+      logit_pred <- exp(X %*% x$coef)/(1 + exp(X %*% x$coef))
+      if(is.infinite(logit_pred)) {
+        sign(logit_pred)
+      } else {
+        logit_pred
+      }
+    }
   } else {
-    map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
+    pred_fun <- function(x) {
+      X %*% x$coef
+    }
+  }
+  if (confidence) {
+    map_mean(object$estimates, ~ map_cbind(., ~ X %*% .$coef) %>%
+               apply(1, mean_lwr_upr, level = level) %>%
+               t())
+  } else {
+    map_mean(object$estimates, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
   }
 }
 
