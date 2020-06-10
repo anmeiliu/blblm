@@ -1,7 +1,7 @@
 test_that("sequential, data given directly", {
   future::plan(future::sequential)
   mtcars <- read.csv("data/mtcars.csv")
-  expect_warning(b <- blblm(mpg ~ wt, mtcars, B = 100))
+  expect_warning(b <- blblm(mpg ~ wt, data = mtcars, B = 100))
   expect_s3_class(b, "blblm")
   co <- coef(b)
   expect_equal(length(co), 2)
@@ -11,7 +11,7 @@ test_that("sequential, data given directly", {
 test_that("parallelized, data given directly", {
   suppressWarnings(future::plan(future::multiprocess))
   mtcars <- read.csv("data/mtcars.csv")
-  b <- blblm(mpg ~ wt, mtcars, B = 100)
+  b <- blblm(mpg ~ wt, data = mtcars, B = 100)
   expect_s3_class(b, "blblm")
   co <- coef(b)
   expect_equal(length(co), 2)
@@ -50,4 +50,14 @@ test_that("respects file split over m", {
   filepaths = c("data/mtcars1.csv", "data/mtcars2.csv")
   expect_warning(b <- blblm(mpg ~ wt, filepaths = filepaths, B = 100, use_plan = FALSE))
   expect_s3_class(b, "blblm")
+})
+
+test_that("logistic regression works", {
+  future::plan(future::sequential)
+  iris <- read.csv("data/iris_subset.csv")
+  expect_warning(b <- blblm(Species ~ Sepal.Length + Sepal.Width, family = binomial, data = iris, B = 100, use_plan = FALSE))
+  expect_s3_class(b, "blblm")
+  co <- coef(b)
+  expect_equal(length(co), 3)
+  expect_type(sigma(b), "double")
 })

@@ -15,7 +15,7 @@ utils::globalVariables(c("."))
 # TODO: allow GLM?
 
 #' @export
-blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, use_plan = TRUE, ...) {
+blblm <- function(formula, family = gaussian, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, use_plan = TRUE, ...) {
   if (is.null(data) & is.null(filepaths)) {
     stop("Neither data nor filepaths to data provided")
   }
@@ -37,14 +37,14 @@ blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.c
 
   if (!is.null(data)) {
     data_list <- split_sample(data, m)
-    estimates <- active_map(data_list, ~ lm_each_subsample(formula, ., n = nrow(.), B = B))
+    estimates <- active_map(data_list, ~ glm_each_subsample(formula, family, ., nrow(.), B))
   } else {
     estimates <- active_map(filepaths, function(filepath_split) {
       data <- filepath_split %>% read_function(...)
-      lm_each_subsample(formula, data, n = nrow(data), B = B)
+      glm_each_subsample(formula, family, data, nrow(data), B)
     })
   }
-  res <- list(estimates = estimates, formula = formula)
+  res <- list(estimates = estimates, formula = formula, family = family)
   class(res) <- "blblm"
   invisible(res)
 }
@@ -56,24 +56,24 @@ split_sample <- function(data, m) {
 }
 
 #' compute the estimates
-lm_each_subsample <- function(formula, data, n, B) {
-  replicate(B, lm_each_boot(formula, data, n), simplify = FALSE)
+glm_each_subsample <- function(formula, family, data, n, B) {
+  replicate(B, glm_each_boot(formula, family, data, n), simplify = FALSE)
 }
 
 
 #' compute the regression estimates for a blb dataset
-lm_each_boot <- function(formula, data, n) {
+glm_each_boot <- function(formula, family, data, n) {
   freqs <- rmultinom(1, n, rep(1, nrow(data)))
-  lm1(formula, data, freqs)
+  glm1(formula, family, data, freqs)
 }
 
 
 #' estimate the regression estimates based on given the number of repetitions
-lm1 <- function(formula, data, freqs) {
+glm1 <- function(formula, family, data, freqs) {
   # drop the original closure of formula,
   # otherwise the formula will pick a wront variable from the global scope.
   environment(formula) <- environment()
-  fit <- lm(formula, data, weights = freqs)
+  fit <- glm(formula, family = family, data, weights = freqs)
   list(coef = blbcoef(fit), sigma = blbsigma(fit))
 }
 
@@ -109,7 +109,7 @@ simplify_estimates <- function(fit) {
 #' @export
 #' @method print blblm
 print.blblm <- function(x, ...) {
-  cat("blblm model:", Reduce(paste, deparse(x$formula))) # R does not like capture.output
+  cat("blblm model:", Reduce(paste, deparse(x$formula)))
   cat("\n")
 }
 
