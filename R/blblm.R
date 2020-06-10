@@ -26,7 +26,7 @@ blblm <- function(formula, data = NULL, filepaths = NULL, read_function = read.c
     warning("Number of filepaths provided is not the same as number of splits, using file-based splits")
   }
   if (use_plan & grepl("sequential", deparse(attributes(plan())$call))) {
-    warning("Using a sequential plan (this is usually slower than not using a plan)")
+    warning("Using a sequential plan; this is usually slower than not using a plan (set use_plan = FALSE to use no plan)")
   }
 
   if (use_plan) {
