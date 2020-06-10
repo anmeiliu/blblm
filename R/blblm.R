@@ -37,11 +37,11 @@ blblm <- function(formula, family = gaussian, data = NULL, filepaths = NULL, rea
 
   if (!is.null(data)) {
     data_list <- split_sample(data, m)
-    estimates <- active_map(data_list, ~ glm_each_subsample(formula, family, ., nrow(data), B))
+    estimates <- active_map(data_list, ~ lm_each_subsample(formula = formula, family = family, data = ., n = nrow(data), B = B))
   } else {
     estimates <- active_map(filepaths, function(filepath_split) {
       data <- filepath_split %>% read_function(...)
-      glm_each_subsample(formula, family, data, nrow(data), B)
+      lm_each_subsample(formula, family, data, nrow(data), B)
     })
   }
   res <- list(estimates = estimates, formula = formula)
@@ -56,7 +56,7 @@ split_sample <- function(data, m) {
 }
 
 #' compute the estimates
-glm_each_subsample <- function(formula, family, data, n, B) {
+lm_each_subsample <- function(formula, family, data, n, B) {
   replicate(B, glm_each_boot(formula, family, data, n), simplify = FALSE)
 }
 
