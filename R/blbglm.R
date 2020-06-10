@@ -14,7 +14,7 @@ utils::globalVariables(c("."))
 
 
 #' @export
-blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, use_plan = TRUE, ...) {
+blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, min_subsample_size = NULL, even_split = NULL, use_plan = TRUE, ...) {
   if (is.null(data) & is.null(filepaths)) {
     stop("Neither data nor filepaths to data provided")
   }
@@ -24,8 +24,33 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
   if (!is.null(filepaths) & length(filepaths) != m) {
     warning("Number of filepaths provided is not the same as number of splits, using file-based splits")
   }
+  if (!is.null(filepaths) & !is.null(min_subsample_size)) {
+    warning("Cannot specify min_subsample_size when using file-based splits")
+  }
+  if (!is.null(filepaths) & !is.null(even_split)) {
+    warning("Cannot specify even_split when using file-based splits")
+  }
   if (use_plan & grepl("sequential", deparse(attributes(plan())$call))) {
     warning("Using a sequential plan; this is usually slower than not using a plan (set use_plan = FALSE to use no plan)")
+  }
+
+  if (is.null(filepaths)) {
+    if (is.null(min_subsample_size)) {
+      if (is.null(even_split)) {
+        even_split = TRUE
+      } else if (!even_split) {
+        message("Using default minimum subsample size = 3")
+        min_subsample_size = 3
+      }
+    } else {
+      if (!is.null(even_split)) {
+        if (even_split) {
+          warning("Cannot specify min_subsample_size when using even splits; ignoring min_subsample_size")
+        }
+      } else {
+        even_split = FALSE
+      }
+    }
   }
 
   if (use_plan) {
@@ -35,7 +60,7 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
   }
 
   if (!is.null(data)) {
-    data_list <- split_sample(data, m)
+    data_list <- split_sample(data, m, min_subsample_size, even_split)
     estimates <- active_map(data_list, ~ glm_each_subsample(formula, family, ., nrow(.), B))
   } else {
     estimates <- active_map(filepaths, function(filepath_split) {
@@ -49,8 +74,14 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
 }
 
 #' split data into m parts of approximated equal sizes
-split_sample <- function(data, m) {
+split_sample <- function(data, m, min_subsample_size, even_split) {
+  if (even_split) {
+    idx <- sample(rep_len(1:m, NROW(data)))
+  } else {
   idx <- sample.int(m, NROW(data), replace = TRUE) # NROW over nrow so it doesn't break on vectors
+  while ((sum(table(idx) < min_subsample_size)) > 0) {
+    idx <- sample.int(m, NROW(data), replace = TRUE)
+  }}
   data %>% split(idx)
 }
 
@@ -90,6 +121,7 @@ blbsigma <- function(fit, freqs) {
   w <- freqs
   sqrt(sum(w * (e^2)) / (sum(w) - p))
 }
+
 
 #' @export
 #' @method print blbglm
@@ -132,7 +164,7 @@ confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
   }
   alpha <- 1 - level
   out <- map_rbind(parm, function(p) {
-    map_mean(object$estimates, ~ map_dbl(., list("coef", p)) %>% quantile(c(alpha / 2, 1 - alpha / 2)))
+    map_mean(object$estimates, ~ map_dbl(., list("coef", p)) %>% quantile(c(alpha / 2, 1 - alpha / 2), na.rm = TRUE))
   })
   if (is.vector(out)) {
     out <- as.matrix(t(out))
