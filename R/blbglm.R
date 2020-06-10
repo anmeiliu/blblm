@@ -73,7 +73,7 @@ glm1 <- function(formula, family, data, freqs) {
   # otherwise the formula will pick a wront variable from the global scope.
   environment(formula) <- environment()
   fit <- glm(formula, family = family, data, weights = freqs)
-  list(coef = blbcoef(fit), sigma = blbsigma(fit))
+  list(coef = blbcoef(fit), sigma = blbsigma(fit, freqs))
 }
 
 
@@ -84,11 +84,11 @@ blbcoef <- function(fit) {
 
 
 #' compute sigma from fit
-blbsigma <- function(fit) {
+blbsigma <- function(fit, freqs) {
   p <- fit$rank
   y <- model.extract(fit$model, "response")
   e <- fitted(fit) - y
-  w <- fit$weights
+  w <- freqs
   sqrt(sum(w * (e^2)) / (sum(w) - p))
 }
 
@@ -160,8 +160,8 @@ predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, .
   X <- model.matrix(reformulate(attr(terms(object$formula), "term.labels")), new_data)
   if (confidence) {
     map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
-      apply(1, mean_lwr_upr, level = level) %>%
-      t())
+               apply(1, mean_lwr_upr, level = level) %>%
+               t())
   } else {
     map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
   }
