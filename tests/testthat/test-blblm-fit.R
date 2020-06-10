@@ -1,7 +1,7 @@
 test_that("sequential, data given directly", {
   future::plan(future::sequential)
   mtcars <- read.csv("data/mtcars.csv")
-  expect_warning(b <- blblm(mpg ~ wt, mtcars, B = 100))
+  expect_warning(b <- blblm(mpg ~ wt, data = mtcars, B = 100))
   expect_s3_class(b, "blblm")
   co <- coef(b)
   expect_equal(length(co), 2)
@@ -11,7 +11,7 @@ test_that("sequential, data given directly", {
 test_that("parallelized, data given directly", {
   suppressWarnings(future::plan(future::multiprocess))
   mtcars <- read.csv("data/mtcars.csv")
-  b <- blblm(mpg ~ wt, mtcars, B = 100)
+  b <- blblm(mpg ~ wt, data = mtcars, B = 100)
   expect_s3_class(b, "blblm")
   co <- coef(b)
   expect_equal(length(co), 2)
