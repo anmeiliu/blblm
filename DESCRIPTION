@@ -1,10 +1,10 @@
-Package: blblm
+Package: blbglm
 Type: Package
-Title: Bag of Little Bootstraps for Linear Models
+Title: Bag of Little Bootstraps for Generalized Linear Models
 Version: 0.1.0
 Author: Anmei Liu
 Maintainer: Anmei Liu <anmliu@ucdavis.edu>
-Description: Implements the bag of little bootstraps algorithm for linear regression models.
+Description: Implements the bag of little bootstraps algorithm for the general linear model.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true

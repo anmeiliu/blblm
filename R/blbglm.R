@@ -4,7 +4,7 @@
 #' @import future
 #' @importFrom magrittr %>%
 #' @details
-#' Linear Regression with Little Bag of Bootstraps
+#' Generalized Linear Models with Bag of Little Bootstraps
 "_PACKAGE"
 
 
@@ -12,10 +12,9 @@
 # from https://github.com/jennybc/googlesheets/blob/master/R/googlesheets.R
 utils::globalVariables(c("."))
 
-# TODO: allow GLM?
 
 #' @export
-blblm <- function(formula, family = gaussian, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, use_plan = TRUE, ...) {
+blbglm <- function(formula, family = gaussian, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, use_plan = TRUE, ...) {
   if (is.null(data) & is.null(filepaths)) {
     stop("Neither data nor filepaths to data provided")
   }
@@ -45,7 +44,7 @@ blblm <- function(formula, family = gaussian, data = NULL, filepaths = NULL, rea
     })
   }
   res <- list(estimates = estimates, formula = formula, family = family)
-  class(res) <- "blblm"
+  class(res) <- "blbglm"
   invisible(res)
 }
 
@@ -107,17 +106,17 @@ simplify_estimates <- function(fit) {
 # TODO: richer print information
 
 #' @export
-#' @method print blblm
-print.blblm <- function(x, ...) {
-  cat("blblm model:", Reduce(paste, deparse(x$formula)))
+#' @method print blbglm
+print.blbglm <- function(x, ...) {
+  cat("blbglm model:", Reduce(paste, deparse(x$formula)))
   cat("\n")
 }
 
-# TODO: maybe sigma, coefs should be stored in the blblm object?
+# TODO: maybe sigma, coefs should be stored in the blbglm object?
 
 #' @export
-#' @method sigma blblm
-sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
+#' @method sigma blbglm
+sigma.blbglm <- function(object, confidence = FALSE, level = 0.95, ...) {
   sigma <- mean(map_dbl(object$estimates, ~ mean(map_dbl(., "sigma"))))
   if (confidence) {
     alpha <- 1 - level
@@ -131,15 +130,15 @@ sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
 }
 
 #' @export
-#' @method coef blblm
-coef.blblm <- function(object, ...) {
+#' @method coef blbglm
+coef.blbglm <- function(object, ...) {
   map_mean(object$estimates, ~ map_cbind(., "coef") %>% rowMeans())
 }
 
 
 #' @export
-#' @method confint blblm
-confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
+#' @method confint blbglm
+confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
   if (is.null(parm)) {
     parm <- attr(terms(object$formula), "term.labels")
   }
@@ -155,8 +154,8 @@ confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
 }
 
 #' @export
-#' @method predict blblm
-predict.blblm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
+#' @method predict blbglm
+predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
   est <- object$estimates
   X <- model.matrix(reformulate(attr(terms(object$formula), "term.labels")), new_data)
   if (confidence) {
