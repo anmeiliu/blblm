@@ -91,16 +91,16 @@ blbsigma <- function(fit, freqs) {
   sqrt(sum(w * (e^2)) / (sum(w) - p))
 }
 
-# TODO: richer print information
-
 #' @export
 #' @method print blbglm
 print.blbglm <- function(x, ...) {
-  cat("blbglm model:", Reduce(paste, deparse(x$formula)))
-  cat("\n")
+  cat("blbglm model: ")
+  print(x$formula)
+  cat("\ncoefficients:\n")
+  print(coef(x))
+  cat("\nsigma: ")
+  cat(sigma(x), "\n")
 }
-
-# TODO: maybe sigma, coefs should be stored in the blbglm object?
 
 #' @export
 #' @method sigma blbglm
