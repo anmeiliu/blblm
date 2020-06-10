@@ -4,7 +4,7 @@
 \alias{split_sample}
 \title{split data into m parts of approximated equal sizes}
 \usage{
-split_sample(data, m)
+split_sample(data, m, min_subsample_size, even_split)
 }
 \description{
 split data into m parts of approximated equal sizes

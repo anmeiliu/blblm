@@ -4,7 +4,7 @@
 \alias{blbsigma}
 \title{compute sigma from fit}
 \usage{
-blbsigma(fit)
+blbsigma(fit, freqs)
 }
 \description{
 compute sigma from fit
