@@ -14,7 +14,7 @@ utils::globalVariables(c("."))
 
 
 #' @export
-blbglm <- function(formula, family = gaussian, data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, use_plan = TRUE, ...) {
+blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, use_plan = TRUE, ...) {
   if (is.null(data) & is.null(filepaths)) {
     stop("Neither data nor filepaths to data provided")
   }
@@ -87,7 +87,7 @@ blbcoef <- function(fit) {
 blbsigma <- function(fit, freqs) {
   p <- fit$rank
   y <- model.extract(fit$model, "response")
-  e <- fitted(fit) - y
+  e <- fit$residuals
   w <- freqs
   sqrt(sum(w * (e^2)) / (sum(w) - p))
 }
@@ -158,6 +158,22 @@ confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
 predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
   est <- object$estimates
   X <- model.matrix(reformulate(attr(terms(object$formula), "term.labels")), new_data)
+  logit <- ifelse(class(object$fit) == "function", formals(object$fit)$link == "logit",
+              ifelse(class(object$fit) == "family", object$fit$link == "logit", FALSE))
+  if (logit) {
+    pred_fun <- function(x) {
+      logit_pred <- exp(X %*% x$coef)/(1 + exp(X %*% x$coef))
+      if(is.infinite(logit_pred)) {
+        sign(logit_pred)
+      } else {
+        logit_pred
+      }
+    }
+  } else {
+    pred_fun <- function(x) {
+      X %*% x$coef
+    }
+  }
   if (confidence) {
     map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
                apply(1, mean_lwr_upr, level = level) %>%
