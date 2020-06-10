@@ -4,7 +4,7 @@
 \alias{lm_each_subsample}
 \title{compute the estimates}
 \usage{
-lm_each_subsample(formula, data, n, B)
+lm_each_subsample(my_formula, my_family, my_data, my_n, my_B)
 }
 \description{
 compute the estimates

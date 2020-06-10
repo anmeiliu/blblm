@@ -37,14 +37,14 @@ blblm <- function(formula, family = gaussian, data = NULL, filepaths = NULL, rea
 
   if (!is.null(data)) {
     data_list <- split_sample(data, m)
-    estimates <- active_map(data_list, ~ lm_each_subsample(formula, family, ., nrow(data), B))
+    estimates <- active_map(data_list, ~ glm_each_subsample(formula, family, ., nrow(.), B))
   } else {
     estimates <- active_map(filepaths, function(filepath_split) {
       data <- filepath_split %>% read_function(...)
-      lm_each_subsample(formula, family, data, nrow(data), B)
+      glm_each_subsample(formula, family, data, nrow(data), B)
     })
   }
-  res <- list(estimates = estimates, formula = formula)
+  res <- list(estimates = estimates, formula = formula, family = family)
   class(res) <- "blblm"
   invisible(res)
 }
@@ -56,8 +56,8 @@ split_sample <- function(data, m) {
 }
 
 #' compute the estimates
-lm_each_subsample <- function(my_formula, my_family, my_data, my_n, my_B) {
-  replicate(my_B, glm_each_boot(my_formula, my_family, my_data, my_n), simplify = FALSE)
+glm_each_subsample <- function(formula, family, data, n, B) {
+  replicate(B, glm_each_boot(formula, family, data, n), simplify = FALSE)
 }
 
 
@@ -109,7 +109,7 @@ simplify_estimates <- function(fit) {
 #' @export
 #' @method print blblm
 print.blblm <- function(x, ...) {
-  cat("blblm model:", Reduce(paste, deparse(x$formula))) # R does not like capture.output
+  cat("blblm model:", Reduce(paste, deparse(x$formula)))
   cat("\n")
 }
 
