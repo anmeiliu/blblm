@@ -86,21 +86,9 @@ blbcoef <- function(fit) {
 #' compute sigma from fit
 blbsigma <- function(fit, freqs) {
   p <- fit$rank
-  y <- model.extract(fit$model, "response")
   e <- fit$residuals
   w <- freqs
   sqrt(sum(w * (e^2)) / (sum(w) - p))
-}
-
-simplify_estimates <- function(fit) {
-  fit$estimates %>% map(function(x) {
-    df <- cbind(
-      map_dfr(x, ~ data.frame(as.list(.$coef))),
-      map_dfr(x, ~ data.frame(sigma = .$sigma))
-    )
-    names(df) <- c("(Intercept)", names(df)[-1])
-    df
-  })
 }
 
 # TODO: richer print information
@@ -156,7 +144,6 @@ confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
 #' @export
 #' @method predict blbglm
 predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
-  est <- object$estimates
   X <- model.matrix(reformulate(attr(terms(object$formula), "term.labels")), new_data)
   logit <- ifelse(class(object$fit) == "function", formals(object$fit)$link == "logit",
               ifelse(class(object$fit) == "family", object$fit$link == "logit", FALSE))
@@ -175,11 +162,11 @@ predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, .
     }
   }
   if (confidence) {
-    map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
+    map_mean(object$estimates, ~ map_cbind(., ~ X %*% .$coef) %>%
                apply(1, mean_lwr_upr, level = level) %>%
                t())
   } else {
-    map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
+    map_mean(object$estimates, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
   }
 }
 
