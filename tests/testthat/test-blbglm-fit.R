@@ -54,3 +54,11 @@ test_that("multivariate formula works", {
   expect_equal(length(co), 3)
   expect_type(sigma(b), "double")
 })
+
+test_that("dot formula works", {
+  expect_warning(b <- blbglm(Species ~ ., family = binomial, data = iris, B = 100, use_plan = FALSE))
+  expect_s3_class(b, "blbglm")
+  co <- coef(b)
+  expect_equal(length(co), 3)
+  expect_type(sigma(b), "double")
+})
