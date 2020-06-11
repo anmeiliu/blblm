@@ -39,11 +39,13 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
       if (is.null(even_split)) {
         even_split = TRUE
       } else if (!even_split) {
-        message("Using default minimum subsample size = 3")
-        min_subsample_size = 3
+        min_subsample_size = length(all.vars(formula)) + 1
+        message(paste("Using minimum subsample size ="), min_subsample_size)
       }
     } else {
-      if (!is.null(even_split)) {
+      if (min_subsample_size * m > nrow(data)) {
+        stop("min_subsample_size times m must be less than or equal to number of observations")
+      } else if (!is.null(even_split)) {
         if (even_split) {
           warning("Cannot specify min_subsample_size when using even splits; ignoring min_subsample_size")
         }

@@ -26,4 +26,5 @@ test_that("respects min_subsample_size and even_split", {
   expect_gt(sigma(b), 0)
   expect_warning(b <- blbglm(mpg ~ wt, data = mtcars, m = 10, B = 100, min_subsample_size = 3, even_split = TRUE, use_plan = FALSE))
   expect_gt(sigma(b), 0)
+  expect_error(b <- blbglm(mpg ~ wt, data = mtcars, m = 10, B = 100, min_subsample_size = 4, even_split = TRUE, use_plan = FALSE))
 })
