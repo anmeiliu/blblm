@@ -2,10 +2,19 @@
 % Please edit documentation in R/blblm.R
 \name{glm1}
 \alias{glm1}
-\title{estimate the regression estimates based on given the number of repetitions}
+\title{Efficiently estimate glm() parameters based on observation frequency}
 \usage{
 glm1(formula, family, data, freqs)
 }
+\arguments{
+\item{formula}{The formula to use for the linear models.}
+
+\item{family}{The family of the linear models (see glm()).}
+
+\item{data}{An object containing data (which can be passed to glm()).}
+
+\item{freqs}{The frequency of each observation.}
+}
 \description{
-estimate the regression estimates based on given the number of repetitions
+Efficiently estimate glm() parameters based on observation frequency
 }

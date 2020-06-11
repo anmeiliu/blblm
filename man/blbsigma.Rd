@@ -2,10 +2,19 @@
 % Please edit documentation in R/blblm.R
 \name{blbsigma}
 \alias{blbsigma}
-\title{compute sigma from fit}
+\title{Compute sigma based on a model fit and observation weights}
 \usage{
-blbsigma(fit, freqs)
+blbsigma(fit, weights)
+}
+\arguments{
+\item{fit}{The model fit to be extracted from.}
+
+\item{weights}{The weight of each observation in the model.}
 }
 \description{
-compute sigma from fit
+The sigma computed here is based on the efficient bootstrap computation used
+above, i.e. it takes into account the weights as separate observations.
+fit$weights isn't used because it provides misleading results for
+non-Gaussian GLMs, but fit$residuals is used to provide residuals that
+generalize between GLM forms.
 }

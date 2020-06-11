@@ -2,10 +2,19 @@
 % Please edit documentation in R/blblm.R
 \name{glm_each_boot}
 \alias{glm_each_boot}
-\title{compute the regression estimates for a blb dataset}
+\title{Efficiently compute the estimate of glm() parameters for one bootstrap}
 \usage{
 glm_each_boot(formula, family, data, n)
 }
+\arguments{
+\item{formula}{The formula to use for the linear models.}
+
+\item{family}{The family of the linear models (see glm()).}
+
+\item{data}{An object containing data (which can be passed to glm()).}
+
+\item{n}{The number of observations in the data.}
+}
 \description{
-compute the regression estimates for a blb dataset
+Efficiently compute the estimate of glm() parameters for one bootstrap
 }

@@ -2,10 +2,13 @@
 % Please edit documentation in R/blblm.R
 \name{blbcoef}
 \alias{blbcoef}
-\title{compute the coefficients from fit}
+\title{Extract the coefficients from a model fit}
 \usage{
 blbcoef(fit)
 }
+\arguments{
+\item{fit}{The model fit to be extracted from.}
+}
 \description{
-compute the coefficients from fit
+Extract the coefficients from a model fit
 }

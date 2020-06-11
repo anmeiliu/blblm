@@ -2,10 +2,22 @@
 % Please edit documentation in R/blblm.R
 \name{split_sample}
 \alias{split_sample}
-\title{split data into m parts of approximated equal sizes}
+\title{Randomly split data into m parts}
 \usage{
 split_sample(data, m, min_subsample_size, even_split)
 }
+\arguments{
+\item{data}{A data object (dataframe, vector, etc.) to split.}
+
+\item{m}{The number of splits to create.}
+
+\item{min_subsample_size}{The minimum size of each split.}
+
+\item{even_split}{Whether to create splits so they are as similarly-sized as possible.}
+}
+\value{
+A list containing m subsets of data.
+}
 \description{
-split data into m parts of approximated equal sizes
+Randomly split data into m parts
 }

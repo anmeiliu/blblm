@@ -2,10 +2,21 @@
 % Please edit documentation in R/blblm.R
 \name{glm_each_subsample}
 \alias{glm_each_subsample}
-\title{compute the estimates}
+\title{Perform bootstraps with glm()}
 \usage{
 glm_each_subsample(formula, family, data, n, B)
 }
+\arguments{
+\item{formula}{The formula to use for the linear models.}
+
+\item{family}{The family of the linear models (see glm()).}
+
+\item{data}{An object containing data (which can be passed to glm()).}
+
+\item{n}{The number of observations in the data.}
+
+\item{B}{The number of bootstraps.}
+}
 \description{
-compute the estimates
+Perform bootstraps with glm()
 }
