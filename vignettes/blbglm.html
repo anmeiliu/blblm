@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+
+
+<title>Bag of Little Bootstraps for Generalized Linear Models</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Bag of Little Bootstraps for Generalized Linear Models</h1>
+
+
+
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(blblm)</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2"><span class="kw">library</span>(future)</a></code></pre></div>
+<p>The bag of little bootstraps (BLB) is a strategy for computing efficient bootstrap estimators and confidence intervals. <code>blblm</code> is a package implementing BLB for the generalized linear model (GLM). <code>blblm</code> explicitly supports linear and logistic regression models, but in theory, it can compute estimators using any GLM (assuming that the data is appropriately-formed). <code>blblm</code> implements parallel processing through the package <code>future</code>, allowing flexible user control over the manner in which that processing takes place.</p>
+<p>For this project, my main enhancements to the package were as follows:</p>
+<ol style="list-style-type: decimal">
+<li>Implement opt-in parallel processing with <code>future</code></li>
+<li>Use <code>glm()</code> instead of <code>lm()</code>, allowing a wider variety of models to be fitted (mainly logistic regression models)</li>
+<li>Give the user greater control over how subsamples are created</li>
+<li>Allow data to be read from files, including compatibility with parallel reading</li>
+<li>Improve user experience through printouts, messages, warnings, errors, and documentation</li>
+</ol>
+<p>I also fixed a few small bugs (including failures on formulas of the form <code>y ~ .</code> and incorrect hardcoding of sigma confidence level), made computations more robust to NA values in bootstrap samples, and tweaked code to improve efficiency.</p>
+<div id="parallelization" class="section level2">
+<h2>Parallelization</h2>
+<p><code>blblm</code> allows the user to make use of parallel processing through <code>future</code>, which as simple as specifying <code>future::plan()</code>. <code>plan</code> can initialize parallel resources automatically or use an existing cluster (see the documentation of <code>future</code> for more details).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1"><span class="kw">plan</span>(multiprocess)</a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="cf">if</span> (<span class="kw">require</span>(blblmorig)) {</a>
+<a class="sourceLine" id="cb2-3" data-line-number="3">  bench<span class="op">::</span><span class="kw">mark</span>(</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4">    <span class="dt">parallel =</span> <span class="kw">blbglm</span>(mpg <span class="op">~</span><span class="st"> </span>wt, <span class="dt">data =</span> mtcars, <span class="dt">m =</span> <span class="dv">3</span>, <span class="dt">B =</span> <span class="dv">1000</span>, <span class="dt">min_subsample_size =</span> <span class="dv">1</span>),</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5">    <span class="dt">nonparallel =</span> <span class="kw">blbglm</span>(mpg <span class="op">~</span><span class="st"> </span>wt, <span class="dt">data =</span> mtcars, <span class="dt">m =</span> <span class="dv">3</span>, <span class="dt">B =</span> <span class="dv">1000</span>, <span class="dt">min_subsample_size =</span> <span class="dv">1</span>, <span class="dt">use_plan =</span> <span class="ot">FALSE</span>),</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6">    <span class="dt">orig =</span> <span class="kw">blblm</span>(mpg <span class="op">~</span><span class="st"> </span>wt, mtcars, <span class="dt">m =</span> <span class="dv">3</span>, <span class="dt">B =</span> <span class="dv">1000</span>),</a>
+<a class="sourceLine" id="cb2-7" data-line-number="7">    <span class="dt">iterations =</span> <span class="dv">1</span>,</a>
+<a class="sourceLine" id="cb2-8" data-line-number="8">    <span class="dt">check =</span> <span class="ot">FALSE</span></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9">  )</a>
+<a class="sourceLine" id="cb2-10" data-line-number="10">}</a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">#&gt; # A tibble: 3 x 6</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">#&gt;   expression       min   median `itr/sec` mem_alloc `gc/sec`</span></a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="co">#&gt;   &lt;bch:expr&gt;  &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb2-14" data-line-number="14"><span class="co">#&gt; 1 parallel       1.29s    1.29s     0.775    1.93MB    0.775</span></a>
+<a class="sourceLine" id="cb2-15" data-line-number="15"><span class="co">#&gt; 2 nonparallel    2.32s    2.32s     0.431    12.7MB    8.19 </span></a>
+<a class="sourceLine" id="cb2-16" data-line-number="16"><span class="co">#&gt; 3 orig           1.89s    1.89s     0.528    8.95MB    8.45</span></a></code></pre></div>
+<p>Under parallelization, <code>blbglm</code> is quite a bit faster than the original <code>blblm</code>. (While my function is not as fast or efficient under non-parallelized conditions as the original one, it is a lot richer in features, which probably explains this.)</p>
+<p>Sometimes the user may need to work under non-parallel conditions, in which case it is helpful to specify that the plan will be ignored (for better performance). This is left to the user’s discretion, but <code>blbglm</code> will help out by warning when this is the case.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">plan</span>(sequential)</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">blbglm_mtcars &lt;-<span class="st"> </span><span class="kw">blbglm</span>(mpg <span class="op">~</span><span class="st"> </span>wt, <span class="dt">data =</span> mtcars, <span class="dt">m =</span> <span class="dv">3</span>, <span class="dt">B =</span> <span class="dv">10</span>, <span class="dt">min_subsample_size =</span> <span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">#&gt; Warning in blbglm(mpg ~ wt, data = mtcars, m = 3, B = 10, min_subsample_size = 1): Using a sequential</span></a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="co">#&gt; plan; this is usually slower than not using a plan (set use_plan = FALSE to use no plan)</span></a></code></pre></div>
+<p>By benchmarking the two versions, we can compare their relative performance. Since the version which makes use of the plan is using <code>future_map</code>, there is more overhead and no benefit without parallelization. (This is why I implemented the option.)</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1">bench<span class="op">::</span><span class="kw">mark</span>(</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">    <span class="dt">using_plan =</span> <span class="kw">blbglm</span>(mpg <span class="op">~</span><span class="st"> </span>wt, <span class="dt">data =</span> mtcars, <span class="dt">m =</span> <span class="dv">3</span>, <span class="dt">B =</span> <span class="dv">1000</span>, <span class="dt">min_subsample_size =</span> <span class="dv">1</span>),</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">    <span class="dt">not_using_plan =</span> <span class="kw">blbglm</span>(mpg <span class="op">~</span><span class="st"> </span>wt, <span class="dt">data =</span> mtcars, <span class="dt">m =</span> <span class="dv">3</span>, <span class="dt">B =</span> <span class="dv">1000</span>, <span class="dt">min_subsample_size =</span> <span class="dv">1</span>, <span class="dt">use_plan =</span> <span class="ot">FALSE</span>),</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">    <span class="dt">iterations =</span> <span class="dv">10</span>,</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">    <span class="dt">check =</span> <span class="ot">FALSE</span></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6">    )</a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="co">#&gt; # A tibble: 2 x 6</span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"><span class="co">#&gt;   expression          min   median `itr/sec` mem_alloc `gc/sec`</span></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"><span class="co">#&gt;   &lt;bch:expr&gt;     &lt;bch:tm&gt; &lt;bch:tm&gt;     &lt;dbl&gt; &lt;bch:byt&gt;    &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb4-10" data-line-number="10"><span class="co">#&gt; 1 using_plan        2.27s    2.42s     0.409      13MB     7.45</span></a>
+<a class="sourceLine" id="cb4-11" data-line-number="11"><span class="co">#&gt; 2 not_using_plan    2.44s    2.72s     0.362    12.4MB     6.15</span></a></code></pre></div>
+<p>Of course, the gains are relatively minor, but might be more relevant on larger datasets.</p>
+</div>
+<div id="lm-to-glm-conversion" class="section level2">
+<h2>lm() to glm() conversion</h2>
+<p><code>blbglm</code> is fully compatible with both linear and binary logistic regression (although it does not enforce any special rules on subsamples, which means logistic regression on small samples can be misleading). <code>predict.blbglm</code> even detects use of a logit link function and applies the inverse logit function to its output. I believe other generalized linear models are also compatible with <code>blbglm</code>, but have not tested them; they can be used by specifying <code>family = link_function</code> with an appropriate choice of <code>link_function</code> (see the documentation of <code>glm</code> for more information).</p>
+<p>To implement <code>glm()</code>, I had to make significant modifications to <code>sigma.blbglm</code>. Firstly, <code>sigma.blbglm</code> takes the bootstrap weights as a parameter instead of using the fit weights (because <code>fit$weights</code> is misleading for logistic regression.) I also modified it to use <code>fit$residuals</code>, making it compatible with dependent variables that are factors.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">iris_subset &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;data/iris_subset.csv&quot;</span>)</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">blbglm_iris &lt;-<span class="st"> </span><span class="kw">blbglm</span>(Species <span class="op">~</span><span class="st"> </span>., <span class="dt">family =</span> <span class="kw">binomial</span>(), <span class="dt">data =</span> iris_subset, <span class="dt">m =</span> <span class="dv">3</span>, <span class="dt">B =</span> <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">blbglm_iris</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="co">#&gt; blbglm model: Species ~ .</span></a>
+<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="co">#&gt; coefficients:</span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="co">#&gt;  (Intercept) Sepal.Length  Sepal.Width </span></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8"><span class="co">#&gt;   -25.585521     3.216095     1.961590 </span></a>
+<a class="sourceLine" id="cb5-9" data-line-number="9"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10"><span class="co">#&gt; sigma: 2.510131</span></a>
+<a class="sourceLine" id="cb5-11" data-line-number="11"><span class="kw">predict</span>(blbglm_iris, iris_subset[<span class="dv">1</span><span class="op">:</span><span class="dv">10</span>,])</a>
+<a class="sourceLine" id="cb5-12" data-line-number="12"><span class="co">#&gt;          1          2          3          4          5          6          7          8          9 </span></a>
+<a class="sourceLine" id="cb5-13" data-line-number="13"><span class="co">#&gt;  3.2042323  1.2745755  2.6864638 -3.3853412  0.8115488 -1.7613271  1.1491250 -5.1188391  1.3293173 </span></a>
+<a class="sourceLine" id="cb5-14" data-line-number="14"><span class="co">#&gt;         10 </span></a>
+<a class="sourceLine" id="cb5-15" data-line-number="15"><span class="co">#&gt; -3.5655335</span></a></code></pre></div>
+</div>
+<div id="subsampling-options" class="section level2">
+<h2>Subsampling options</h2>
+<p><code>blbglm</code> offers a few schemes for controlling its subsampling algorithm. By default, it divides observations randomly but evenly between subsamples (so that the subsamples are as close to equal in size as possible). This behavior can be disabled with <code>even_split = FALSE</code>.</p>
+<p>When subsample sizes are allowed to vary, the minimum size of a subsample is controlled by <code>min_subsample_size</code>. The default size is based on the number of independent variables in the formula (this is not always an accurate minimum, but is generally sufficient). Subsamples that are too small do not have enough observations to fit a model. Extremely small subsamples are only an issue when the overall sample is small and <code>m</code>, the number of subsamples, is large. If subsample randomization produces a subsample that is too small, the randomization is redone.</p>
+<p>Sadly, it is very complicated to support subsampling and bootstrapping that guarantees each bootstrap will have at least one observation at each level of a factor, causing logistic regression with small subsamples to be misleading.</p>
+</div>
+<div id="file-reading" class="section level2">
+<h2>File reading</h2>
+<p><code>blbglm</code> can process a data object, but it can also read files from a mappable object (vector, list) of paths. For sequential processing, this is not very useful, but in parallel mode, this reduces the memory footprint of the process and also speeds it up.</p>
+<p>If filepaths are given, <code>blbglm</code> assumes that each file corresponds to one subsample, so it is important to make sure that your files reflect your desired subsamples. Using filepath specifications overrides all subsampling options.</p>
+<p>The function with which to read data is user-specified, so <code>blbglm</code> can read any filetype! By default, it uses <code>read.csv</code>, but you may prefer to use <code>readr::read_csv</code> or another importing function. Additional arguments to <code>blbglm</code> will be passed along to the reading function, so it is even possible to specify other parameters such as <code>header = FALSE</code>, and so on.</p>
+</div>
+<div id="user-experience" class="section level2">
+<h2>User experience</h2>
+<p><code>blbglm</code> is very aggressive about warning users who call it with seemingly illogical inputs (for example, both a data object and a set of filepaths).</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">blbglm</span>(Species <span class="op">~</span><span class="st"> </span>., <span class="dt">family =</span> <span class="kw">binomial</span>(), <span class="dt">data =</span> iris_subset, <span class="dt">filepath =</span> <span class="st">&quot;data/iris_subset.csv&quot;</span>, <span class="dt">m =</span> <span class="dv">3</span>, <span class="dt">B =</span> <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="co">#&gt; Warning in blbglm(Species ~ ., family = binomial(), data = iris_subset, : Both data and filepaths</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="co">#&gt; specified, using data</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="co">#&gt; Warning in blbglm(Species ~ ., family = binomial(), data = iris_subset, : Number of filepaths provided is</span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="co">#&gt; not the same as number of splits, using file-based splits</span></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="co">#&gt; Warning in blbglm(Species ~ ., family = binomial(), data = iris_subset, : Using a sequential plan; this</span></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7"><span class="co">#&gt; is usually slower than not using a plan (set use_plan = FALSE to use no plan)</span></a>
+<a class="sourceLine" id="cb6-8" data-line-number="8"><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></a>
+<a class="sourceLine" id="cb6-9" data-line-number="9"><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></a>
+<a class="sourceLine" id="cb6-10" data-line-number="10"><span class="co">#&gt; Warning: glm.fit: algorithm did not converge</span></a>
+<a class="sourceLine" id="cb6-11" data-line-number="11"><span class="co">#&gt; Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</span></a></code></pre></div>
+<p>This ensures that the user has clarity about the operations being performed at all times. I have also implemented a variety of other condition signalling.</p>
+<p>I also improved the <code>print</code> method for <code>blbglm</code>. Instead of just printing the formula, it prints the coefficients and sigma of the model as well.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">blbglm_mtcars</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2"><span class="co">#&gt; blbglm model: mpg ~ wt</span></a>
+<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4"><span class="co">#&gt; coefficients:</span></a>
+<a class="sourceLine" id="cb7-5" data-line-number="5"><span class="co">#&gt; (Intercept)          wt </span></a>
+<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="co">#&gt;   38.207715   -6.030784 </span></a>
+<a class="sourceLine" id="cb7-7" data-line-number="7"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb7-8" data-line-number="8"><span class="co">#&gt; sigma: 2.30366</span></a></code></pre></div>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

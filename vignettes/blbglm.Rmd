@@ -37,14 +37,14 @@ I also fixed a few small bugs (including failures on formulas of the form `y ~ .
 
 `blblm` allows the user to make use of parallel processing through `future`, which as simple as specifying `future::plan()`. `plan` can initialize parallel resources automatically or use an existing cluster (see the documentation of `future` for more details). 
 
-```{r cache=TRUE, warning=FALSE}
+```{r warning=FALSE}
 plan(multiprocess)
 if (require(blblmorig)) {
   bench::mark(
     parallel = blbglm(mpg ~ wt, data = mtcars, m = 3, B = 1000, min_subsample_size = 1),
     nonparallel = blbglm(mpg ~ wt, data = mtcars, m = 3, B = 1000, min_subsample_size = 1, use_plan = FALSE),
     orig = blblm(mpg ~ wt, mtcars, m = 3, B = 1000),
-    iterations = 10,
+    iterations = 1,
     check = FALSE
   )
 }
@@ -54,14 +54,14 @@ Under parallelization, `blbglm` is quite a bit faster than the original `blblm`.
 
 Sometimes the user may need to work under non-parallel conditions, in which case it is helpful to specify that the plan will be ignored (for better performance). This is left to the user's discretion, but `blbglm` will help out by warning when this is the case.
 
-```{r cache=TRUE}
+```{r}
 plan(sequential)
 blbglm_mtcars <- blbglm(mpg ~ wt, data = mtcars, m = 3, B = 10, min_subsample_size = 1)
 ```
 
 By benchmarking the two versions, we can compare their relative performance. Since the version which makes use of the plan is using `future_map`, there is more overhead and no benefit without parallelization. (This is why I implemented the option.)
 
-```{r cache=TRUE, warning=FALSE}
+```{r warning=FALSE}
 bench::mark(
 	using_plan = blbglm(mpg ~ wt, data = mtcars, m = 3, B = 1000, min_subsample_size = 1),
 	not_using_plan = blbglm(mpg ~ wt, data = mtcars, m = 3, B = 1000, min_subsample_size = 1, use_plan = FALSE),
