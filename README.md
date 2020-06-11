@@ -30,3 +30,5 @@ predict(fit, data.frame(wt = c(2.5, 3), hp = c(150, 170)), confidence = TRUE)
 ```
 
 Implemented by Anmei Liu for STA 141c, Spring Quarter 2020
+
+See vignettes/blbglm.html for a full description! This package passes devtools::check() with the exception of one package, the original version of blblm, which is solely used to compare benchmarked speeds.
