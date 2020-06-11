@@ -178,7 +178,7 @@ confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
 #' @export
 #' @method predict blbglm
 predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
-  X <- model.matrix(reformulate(attr(terms(object$formula), "term.labels")), new_data)
+  X <- model.matrix(reformulate(attr(terms(object$formula), data = new_data, "term.labels")), new_data)
   logit <- ifelse(class(object$fit) == "function", formals(object$fit)$link == "logit",
                   ifelse(class(object$fit) == "family", object$fit$link == "logit", FALSE))
   if (logit) {
