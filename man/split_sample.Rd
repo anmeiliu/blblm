@@ -7,7 +7,7 @@
 split_sample(data, m, min_subsample_size, even_split)
 }
 \arguments{
-\item{data}{A data object (dataframe, vector, etc.) to split.}
+\item{data}{A data object to split.}
 
 \item{m}{The number of splits to create.}
 

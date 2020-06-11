@@ -28,3 +28,5 @@ predict(fit, data.frame(wt = c(2.5, 3), hp = c(150, 170)), confidence = TRUE)
 #> 1 21.55538 20.02457 22.48764
 #> 2 18.80785 17.50654 19.71772
 ```
+
+Implemented by Anmei Liu for STA 141c, Spring Quarter 2020

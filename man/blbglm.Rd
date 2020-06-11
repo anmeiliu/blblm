@@ -81,6 +81,8 @@ of dependent variables.
 }
 \examples{
 blbglm(mpg ~ wt, data = mtcars, B = 100, even_split = TRUE, use_plan = FALSE)
-blbglm(Species ~ Sepal.Length, family = binomial(), data = iris,
-m = 3, B = 100, min_subsample_size = 30)
+blbglm(Species ~ Sepal.Length,
+  family = binomial(), data = iris,
+  m = 3, B = 100, min_subsample_size = 30
+)
 }

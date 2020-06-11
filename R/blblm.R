@@ -90,6 +90,7 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
     warning("Using a sequential plan; this is usually slower than not using a plan (set use_plan = FALSE to use no plan)")
   }
 
+  # check that we have logical subsample options
   if (is.null(filepaths)) {
     if (is.null(min_subsample_size)) {
       if (is.null(even_split)) {
@@ -109,23 +110,28 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
         even_split <- FALSE
       }
     }
+  } else {
+    even_split <- FALSE
   }
 
+  # check which map function to use
   if (use_plan) {
     active_map <- furrr::future_map
   } else {
     active_map <- map
   }
 
+  # do the data processing
   if (!is.null(data)) {
     data_list <- split_sample(data, m, min_subsample_size, even_split)
     estimates <- active_map(data_list, ~ glm_each_subsample(formula, family, ., nrow(.), B))
   } else {
     estimates <- active_map(filepaths, function(filepath_split) {
-      data <- filepath_split %>% read_function(...)
+      data <- filepath_split %>% read_function(...) # passes args along to read function
       glm_each_subsample(formula, family, data, nrow(data), B)
     })
   }
+
   res <- list(estimates = estimates, formula = formula, family = family)
   class(res) <- "blbglm"
   invisible(res)
@@ -133,7 +139,7 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
 
 #' Randomly split data into m parts
 #'
-#' @param data A data object (dataframe, vector, etc.) to split.
+#' @param data A data object to split.
 #' @param m The number of splits to create.
 #' @param min_subsample_size The minimum size of each split.
 #' @param even_split Whether to create splits so they are as similarly-sized as possible.
@@ -141,11 +147,11 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
 #' @return A list containing m subsets of data.
 split_sample <- function(data, m, min_subsample_size, even_split) {
   if (even_split) {
-    idx <- sample(rep_len(1:m, NROW(data)))
+    idx <- sample(rep_len(1:m, nrow(data))) # permutes the order of the subsample assignments
   } else {
-    idx <- sample.int(m, NROW(data), replace = TRUE) # NROW over nrow so it doesn't break on vectors
+    idx <- sample.int(m, nrow(data), replace = TRUE)
     while ((sum(table(idx) < min_subsample_size)) > 0) {
-      idx <- sample.int(m, NROW(data), replace = TRUE)
+      idx <- sample.int(m, nrow(data), replace = TRUE) # resample until valid
     }
   }
   data %>% split(idx)
@@ -183,7 +189,7 @@ glm_each_boot <- function(formula, family, data, n) {
 #' @param freqs The frequency of each observation.
 glm1 <- function(formula, family, data, freqs) {
   # drop the original closure of formula,
-  # otherwise the formula will pick a wront variable from the global scope.
+  # otherwise the formula will pick a wrong variable from the global scope.
   environment(formula) <- environment()
   fit <- glm(formula, family = family, data, weights = freqs)
   list(coef = blbcoef(fit), sigma = blbsigma(fit, freqs))
@@ -210,12 +216,18 @@ blbcoef <- function(fit) {
 #' @param weights The weight of each observation in the model.
 blbsigma <- function(fit, weights) {
   p <- fit$rank
-  e <- fit$residuals
+  e <- fit$residuals # works for all forms of GLM
   w <- weights
   sqrt(sum(w * (e^2)) / (sum(w) - p))
 }
 
 
+#' Print out a blbglm object
+#'
+#' @param x The object to print.
+#'
+#' @param ... Additional parameters to pass.
+#'
 #' @export
 #' @method print blbglm
 print.blbglm <- function(x, ...) {
@@ -227,6 +239,16 @@ print.blbglm <- function(x, ...) {
   cat(sigma(x), "\n")
 }
 
+#' Calculate sigma for a blbglm object
+#'
+#' @param object The object to calculate sigma for.
+#'
+#' @param confidence Whether to provide a confidence interval.
+#' @param level The level to use for the confidence interval.
+#' @param ... Additional parameters to pass.
+#'
+#' @return Bag of little bootstraps sigma.
+#'
 #' @export
 #' @method sigma blbglm
 sigma.blbglm <- function(object, confidence = FALSE, level = 0.95, ...) {
@@ -234,7 +256,8 @@ sigma.blbglm <- function(object, confidence = FALSE, level = 0.95, ...) {
   if (confidence) {
     alpha <- 1 - level
     limits <- object$estimates %>%
-      map_mean(~ quantile(map_dbl(., "sigma"), c(alpha / 2, 1 - alpha / 2))) %>%
+      # na.rm = true in case of subsamples with sigma = NA
+      map_mean(~ quantile(map_dbl(., "sigma"), c(alpha / 2, 1 - alpha / 2), na.rm = TRUE)) %>%
       set_names(NULL)
     return(c(sigma = sigma, lwr = limits[1], upr = limits[2]))
   } else {
@@ -242,6 +265,14 @@ sigma.blbglm <- function(object, confidence = FALSE, level = 0.95, ...) {
   }
 }
 
+#' Calculate coefficients for a blbglm object
+#'
+#' @param object The object to calculate coefficients for.
+#'
+#' @param ... Additional parameters to pass.
+#'
+#' @return Bag of little bootstraps coefficients.
+#'
 #' @export
 #' @method coef blbglm
 coef.blbglm <- function(object, ...) {
@@ -249,6 +280,16 @@ coef.blbglm <- function(object, ...) {
 }
 
 
+#' Calculate confidence intervals for a blbglm object
+#'
+#' @param object The object to calculate confidence intervals for.
+#'
+#' @param parm The parameter to calculate confidence intervals for.
+#' @param level The level to use for the confidence interval.
+#' @param ... Additional parameters to pass.
+#'
+#' @return Bag of little bootstraps confidence intervals.
+#'
 #' @export
 #' @method confint blbglm
 confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
@@ -257,6 +298,7 @@ confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
   }
   alpha <- 1 - level
   out <- map_rbind(parm, function(p) {
+    # na.rm = true in case of subsamples with coef = NA
     map_mean(object$estimates, ~ map_dbl(., list("coef", p)) %>% quantile(c(alpha / 2, 1 - alpha / 2), na.rm = TRUE))
   })
   if (is.vector(out)) {
@@ -266,40 +308,62 @@ confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
   out
 }
 
+#' Predict values from a blbglm object
+#'
+#' @param object The object to calculate prediction values for.
+#'
+#' @param new_data The values to predict from.
+#' @param confidence Whether to provide a confidence interval.
+#' @param level The level to use for the confidence interval.
+#' @param inv_link The inverse of the link function, where needed. Logit link functions are detected automatically.
+#' @param ... Additional parameters to pass.
+#'
 #' @export
 #' @method predict blbglm
-predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
+predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, inv_link = NULL, ...) {
   X <- model.matrix(reformulate(attr(terms.formula(object$formula, data = new_data), "term.labels")), new_data)
-  logit <- ifelse(class(object$fit) == "function", formals(object$fit)$link == "logit",
-    ifelse(class(object$fit) == "family", object$fit$link == "logit", FALSE)
-  )
-  if (logit) {
-    pred_fun <- function(x) {
-      logit_pred <- exp(X %*% x$coef) / (1 + exp(X %*% x$coef))
-      if (is.infinite(logit_pred)) {
-        sign(logit_pred)
-      } else {
-        logit_pred
+  # if no inv_link is provided, try detecting a logit link
+  if (is.null(inv_link)) {
+    logit <- ifelse(class(object$fit) == "function", formals(object$fit)$link == "logit",
+      ifelse(class(object$fit) == "family", object$fit$link == "logit", FALSE)
+    )
+    if (logit) {
+      # logit
+      inv_link <- function(x) {
+        logit_pred <- exp(x) / (1 + exp(x))
+        if (is.infinite(logit_pred)) {
+          sign(logit_pred)
+        } else {
+          logit_pred
+        }
+      }
+    } else { # otherwise, don't use an inverse link
+      inv_link <- function(x) {
+        x
       }
     }
-  } else {
-    pred_fun <- function(x) {
-      X %*% x$coef
-    }
   }
+
+  # apply coefficients to X, then apply the inverse link function
+  inv_function <- function(x) {
+    inv_link(X %*% x$coef)
+  }
+
   if (confidence) {
-    map_mean(object$estimates, ~ map_cbind(., ~ X %*% .$coef) %>%
+    map_mean(object$estimates, ~ map_cbind(., inv_function) %>%
       apply(1, mean_lwr_upr, level = level) %>%
       t())
   } else {
-    map_mean(object$estimates, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
+    # na.rm = true in case of subsamples producing NA
+    map_mean(object$estimates, ~ map_cbind(., inv_function) %>% rowMeans(na.rm = TRUE))
   }
 }
 
 
 mean_lwr_upr <- function(x, level = 0.95) {
   alpha <- 1 - level
-  c(fit = mean(x), quantile(x, c(alpha / 2, 1 - alpha / 2)) %>% set_names(c("lwr", "upr")))
+  # na.rm = true in case of subsamples producing NA
+  c(fit = mean(x, na.rm = TRUE), quantile(x, c(alpha / 2, 1 - alpha / 2), na.rm = TRUE) %>% set_names(c("lwr", "upr")))
 }
 
 map_mean <- function(.x, .f, ...) {

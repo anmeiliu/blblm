@@ -1,0 +1,126 @@
+---
+title: "Bag of Little Bootstraps for Generalized Linear Models"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Bag of Little Bootstraps for Generalized Linear Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(blblm)
+library(future)
+```
+
+The bag of little bootstraps (BLB) is a strategy for computing efficient bootstrap estimators and confidence intervals. `blblm` is a package implementing BLB for the generalized linear model (GLM). `blblm` explicitly supports linear and logistic regression models, but in theory, it can compute estimators using any GLM (assuming that the data is appropriately-formed). `blblm` implements parallel processing through the package `future`, allowing flexible user control over the manner in which that processing takes place.
+
+For this project, my main enhancements to the package were as follows:
+
+1. Implement opt-in parallel processing with `future`
+2. Use `glm()` instead of `lm()`, allowing a wider variety of models to be fitted (mainly logistic regression models)
+3. Give the user greater control over how subsamples are created
+4. Allow data to be read from files, including compatibility with parallel reading
+5. Improve user experience through printouts, messages, warnings, errors, and documentation
+
+I also fixed a few small bugs (including failures on formulas of the form `y ~ .` and incorrect hardcoding of sigma confidence level), made computations more robust to NA values in bootstrap samples, and tweaked code to improve efficiency. 
+
+
+
+## Parallelization
+
+`blblm` allows the user to make use of parallel processing through `future`, which as simple as specifying `future::plan()`. `plan` can initialize parallel resources automatically or use an existing cluster (see the documentation of `future` for more details). 
+
+```{r cache=TRUE, warning=FALSE}
+plan(multiprocess)
+if (require(blblmorig)) {
+  bench::mark(
+    parallel = blbglm(mpg ~ wt, data = mtcars, m = 3, B = 1000, min_subsample_size = 1),
+    nonparallel = blbglm(mpg ~ wt, data = mtcars, m = 3, B = 1000, min_subsample_size = 1, use_plan = FALSE),
+    orig = blblm(mpg ~ wt, mtcars, m = 3, B = 1000),
+    iterations = 10,
+    check = FALSE
+  )
+}
+```
+
+Under parallelization, `blbglm` is quite a bit faster than the original `blblm`. (While my function is not as fast or efficient under non-parallelized conditions as the original one, it is a lot richer in features, which probably explains this.) 
+
+Sometimes the user may need to work under non-parallel conditions, in which case it is helpful to specify that the plan will be ignored (for better performance). This is left to the user's discretion, but `blbglm` will help out by warning when this is the case.
+
+```{r cache=TRUE}
+plan(sequential)
+blbglm_mtcars <- blbglm(mpg ~ wt, data = mtcars, m = 3, B = 10, min_subsample_size = 1)
+```
+
+By benchmarking the two versions, we can compare their relative performance. Since the version which makes use of the plan is using `future_map`, there is more overhead and no benefit without parallelization. (This is why I implemented the option.)
+
+```{r cache=TRUE, warning=FALSE}
+bench::mark(
+	using_plan = blbglm(mpg ~ wt, data = mtcars, m = 3, B = 1000, min_subsample_size = 1),
+	not_using_plan = blbglm(mpg ~ wt, data = mtcars, m = 3, B = 1000, min_subsample_size = 1, use_plan = FALSE),
+	iterations = 10,
+	check = FALSE
+	)
+```
+
+Of course, the gains are relatively minor, but might be more relevant on larger datasets.
+
+
+
+## lm() to glm() conversion
+
+`blbglm` is fully compatible with both linear and binary logistic regression (although it does not enforce any special rules on subsamples, which means logistic regression on small samples can be misleading). `predict.blbglm` even detects use of a logit link function and applies the inverse logit function to its output. I believe other generalized linear models are also compatible with `blbglm`, but have not tested them; they can be used by specifying `family = link_function` with an appropriate choice of `link_function` (see the documentation of `glm` for more information). 
+
+To implement `glm()`, I had to make significant modifications to `sigma.blbglm`. Firstly, `sigma.blbglm` takes the bootstrap weights as a parameter instead of using the fit weights (because `fit$weights` is misleading for logistic regression.) I also modified it to use `fit$residuals`, making it compatible with dependent variables that are factors.
+
+```{r warning=FALSE}
+iris_subset <- read.csv("data/iris_subset.csv")
+blbglm_iris <- blbglm(Species ~ ., family = binomial(), data = iris_subset, m = 3, B = 10)
+blbglm_iris
+predict(blbglm_iris, iris_subset[1:10,])
+```
+
+
+
+## Subsampling options
+
+`blbglm` offers a few schemes for controlling its subsampling algorithm. By default, it divides observations randomly but evenly between subsamples (so that the subsamples are as close to equal in size as possible). This behavior can be disabled with `even_split = FALSE`.
+
+When subsample sizes are allowed to vary, the minimum size of a subsample is controlled by `min_subsample_size`. The default size is based on the number of independent variables in the formula (this is not always an accurate minimum, but is generally sufficient). Subsamples that are too small do not have enough observations to fit a model. Extremely small subsamples are only an issue when the overall sample is small and `m`, the number of subsamples, is large. If subsample randomization produces a subsample that is too small, the randomization is redone.
+
+Sadly, it is very complicated to support subsampling and bootstrapping that guarantees each bootstrap will have at least one observation at each level of a factor, causing logistic regression with small subsamples to be misleading.
+
+
+
+## File reading
+
+`blbglm` can process a data object, but it can also read files from a mappable object (vector, list) of paths. For sequential processing, this is not very useful, but in parallel mode, this reduces the memory footprint of the process and also speeds it up. 
+
+If filepaths are given, `blbglm` assumes that each file corresponds to one subsample, so it is important to make sure that your files reflect your desired subsamples. Using filepath specifications overrides all subsampling options.
+
+The function with which to read data is user-specified, so `blbglm` can read any filetype! By default, it uses `read.csv`, but you may prefer to use `readr::read_csv` or another importing function. Additional arguments to `blbglm` will be passed along to the reading function, so it is even possible to specify other parameters such as `header = FALSE`, and so on. 
+
+
+
+## User experience
+
+`blbglm` is very aggressive about warning users who call it with seemingly illogical inputs (for example, both a data object and a set of filepaths). 
+
+```{r}
+blbglm(Species ~ ., family = binomial(), data = iris_subset, filepath = "data/iris_subset.csv", m = 3, B = 10)
+```
+
+This ensures that the user has clarity about the operations being performed at all times. I have also implemented a variety of other condition signalling. 
+
+I also improved the `print` method for `blbglm`. Instead of just printing the formula, it prints the coefficients and sigma of the model as well.
+
+```{r}
+blbglm_mtcars
+```

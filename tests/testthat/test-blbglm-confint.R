@@ -1,6 +1,7 @@
 future::plan(future::sequential)
 
 mtcars <- read.csv("data/mtcars.csv")
+iris <- read.csv("data/iris_subset.csv")
 
 test_that("linear regression confints", {
   b <- blbglm(mpg ~ wt, data = mtcars, B = 100, even_split = TRUE, use_plan = FALSE)
