@@ -12,7 +12,7 @@ test_that("parallelized, data given directly", {
 })
 
 test_that("parallelized, data read from files", {
-  filepaths = c("data/mtcars1.csv", "data/mtcars2.csv")
+  filepaths <- c("data/mtcars1.csv", "data/mtcars2.csv")
   b <- blbglm(mpg ~ wt, filepaths = filepaths, m = 2, B = 100)
   expect_s3_class(b, "blbglm")
   co <- coef(b)
@@ -31,7 +31,7 @@ test_that("sequential, data given directly", {
 })
 
 test_that("sequential, data read from files", {
-  filepaths = c("data/mtcars1.csv", "data/mtcars2.csv")
+  filepaths <- c("data/mtcars1.csv", "data/mtcars2.csv")
   expect_warning(b <- blbglm(mpg ~ wt, filepaths = filepaths, B = 100))
   expect_s3_class(b, "blbglm")
   co <- coef(b)

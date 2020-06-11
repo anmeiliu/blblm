@@ -66,8 +66,10 @@ utils::globalVariables(c("."))
 #'
 #' @examples
 #' blbglm(mpg ~ wt, data = mtcars, B = 100, even_split = TRUE, use_plan = FALSE)
-#' blbglm(Species ~ Sepal.Length, family = binomial(), data = iris,
-#' m = 3, B = 100, min_subsample_size = 30)
+#' blbglm(Species ~ Sepal.Length,
+#'   family = binomial(), data = iris,
+#'   m = 3, B = 100, min_subsample_size = 30
+#' )
 blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, read_function = read.csv, m = 10, B = 5000, min_subsample_size = NULL, even_split = NULL, use_plan = TRUE, ...) {
   if (is.null(data) & is.null(filepaths)) {
     stop("Neither data nor filepaths to data provided")
@@ -91,9 +93,9 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
   if (is.null(filepaths)) {
     if (is.null(min_subsample_size)) {
       if (is.null(even_split)) {
-        even_split = TRUE
+        even_split <- TRUE
       } else if (!even_split) {
-        min_subsample_size = length(all.vars(formula)) + 1
+        min_subsample_size <- length(all.vars(formula)) + 1
         message(paste("Using minimum subsample size ="), min_subsample_size)
       }
     } else {
@@ -104,7 +106,7 @@ blbglm <- function(formula, family = gaussian(), data = NULL, filepaths = NULL, 
           warning("Cannot specify min_subsample_size when using even splits; ignoring min_subsample_size")
         }
       } else {
-        even_split = FALSE
+        even_split <- FALSE
       }
     }
   }
@@ -144,7 +146,8 @@ split_sample <- function(data, m, min_subsample_size, even_split) {
     idx <- sample.int(m, NROW(data), replace = TRUE) # NROW over nrow so it doesn't break on vectors
     while ((sum(table(idx) < min_subsample_size)) > 0) {
       idx <- sample.int(m, NROW(data), replace = TRUE)
-    }}
+    }
+  }
   data %>% split(idx)
 }
 
@@ -268,11 +271,12 @@ confint.blbglm <- function(object, parm = NULL, level = 0.95, ...) {
 predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
   X <- model.matrix(reformulate(attr(terms.formula(object$formula, data = new_data), "term.labels")), new_data)
   logit <- ifelse(class(object$fit) == "function", formals(object$fit)$link == "logit",
-                  ifelse(class(object$fit) == "family", object$fit$link == "logit", FALSE))
+    ifelse(class(object$fit) == "family", object$fit$link == "logit", FALSE)
+  )
   if (logit) {
     pred_fun <- function(x) {
-      logit_pred <- exp(X %*% x$coef)/(1 + exp(X %*% x$coef))
-      if(is.infinite(logit_pred)) {
+      logit_pred <- exp(X %*% x$coef) / (1 + exp(X %*% x$coef))
+      if (is.infinite(logit_pred)) {
         sign(logit_pred)
       } else {
         logit_pred
@@ -285,8 +289,8 @@ predict.blbglm <- function(object, new_data, confidence = FALSE, level = 0.95, .
   }
   if (confidence) {
     map_mean(object$estimates, ~ map_cbind(., ~ X %*% .$coef) %>%
-               apply(1, mean_lwr_upr, level = level) %>%
-               t())
+      apply(1, mean_lwr_upr, level = level) %>%
+      t())
   } else {
     map_mean(object$estimates, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
   }
